@@ -310,8 +310,8 @@
 
 <footer>
 	<p>
-		{product.name} is a working name. All figures are planning targets. Peer support is not a substitute
-		for professional care. If you are in crisis in the US, call or text
+		All figures are planning targets. Peer support is not a substitute for professional care. If you
+		are in crisis in the US, call or text
 		<a href="tel:988">988</a>.
 	</p>
 </footer>

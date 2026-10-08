@@ -2,12 +2,12 @@
 // All numbers are planning targets, not measured results.
 
 export const product = {
-	name: 'Common Ground',
+	name: 'TBI',
 	tagline: 'A peer-support forum for everyday mental wellness',
 	summary:
 		'A moderated, anonymous-by-default forum where people share what they are going through, learn coping skills from peers, and find their way to professional help when they need it.',
 	positioning:
-		'For adults who want to talk about stress, anxiety, burnout or low mood without the noise of mainstream social media, Common Ground is a calm, moderated peer community that feels safe from the first post. Unlike general social platforms, every space is moderated by trained volunteers, posts are anonymous by default, and crisis resources are one tap away.'
+		'For adults who want to talk about stress, anxiety, burnout or low mood without the noise of mainstream social media, TBI is a calm, moderated peer community that feels safe from the first post. Unlike general social platforms, every space is moderated by trained volunteers, posts are anonymous by default, and crisis resources are one tap away.'
 };
 
 export const problem = [
