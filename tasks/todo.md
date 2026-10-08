@@ -61,18 +61,29 @@ deprecated C-2.5 / C-2.7, E-1/E-2 (LDSS home assessment).
 - Clear banner: tool is a fill-in aid; providers remain responsible for accuracy and submission.
 
 ## Phases
-- [ ] 1. Foundation: download + store blank PDFs, dump AcroForm field names, build case model and fill engine, unit tests
-- [ ] 2. Intake step + forms DOH-5729/5725/5728/5727/5730/5732 (all AcroForm — fastest win), packet download
-- [ ] 3. Initial Service Plan DOH-5726 (overlay, continuation pages) + 5752/5753/5755 + C-1.3/C-1.5
-- [ ] 4. Changes (5731, 5750) + ongoing (C-4.1/4.2/4.3/4.6)
-- [ ] 5. Incidents (SRI 24-hour + follow-up) with deadline timers
-- [ ] 6. Encrypted save/open, privacy banner, self-hosted fonts
-- [ ] 7. Verification: render each filled PDF to PNG and check alignment visually; type check, build, a11y pass (keyboard, labels, contrast), phone + desktop screenshots; deploy
+- [x] 1. Foundation: download + store blank PDFs, dump AcroForm field names, build case model and fill engine, unit tests
+- [x] 2. Intake step + forms DOH-5729/5725/5728/5727/5730/5732 (all AcroForm — fastest win), packet download
+- [x] 3. Initial Service Plan DOH-5726 (overlay, continuation pages) + 5752/5753/5755 + C-1.3/C-1.5
+- [x] 4. Changes (5731, 5750) + ongoing (C-4.1/4.2/4.3/4.6)
+- [x] 5. (deadline timers not built) Incidents (SRI 24-hour + follow-up) with deadline timers
+- [x] 6. Encrypted save/open, privacy banner, self-hosted fonts
+- [x] 7. Verification: render each filled PDF to PNG and check alignment visually; type check, build, a11y pass (keyboard, labels, contrast), phone + desktop screenshots; deploy
 
 ## Answered (2026-10-08)
 - Users: both service coordinators and waiver service providers; workflow starts with a role pick.
 - 2009 forms without a current DOH version: include, labeled "2009 version: confirm with your RRDS".
 - Build all phases, verify, deploy at the end.
 
-## Review
-_(filled in after implementation)_
+## Review (2026-10-08)
+- Live: /forms (20 forms), /slide (one-slide pitch + QR to /forms). 12 unit tests pass; svelte-check 0 errors;
+  every form filled with scripts/sample-case.ts and checked as PNG; e2e flow (role -> answers -> download,
+  packet) passed with no console errors and no third-party requests.
+- Not built yet: SRI deadline timers; clickable "Still blank" links on the review step (edit was interrupted).
+- Follow-ups from mapping agents: shared keys for structured address, servicePlan.planningTeam/period,
+  scSupervisor.phone, rrds.phone, rrdc.phone/hours; extra columns on services/medications/supports tables;
+  continuation labels for table cells (falls back to raw key); rows beyond printed tables are dropped silently
+  on DOH-5726; white-out under grey Word prompts on SRI forms; a multiselect question type.
+- Collaborators: Alexander-Mong invited (write). prioritycareshome@gmail.com NOT added: GitHub API needs a
+  username; candidate account prioritycareshome-sys unverified.
+- alex branch (intake-app): compiles, serves all routes 200, page has no console errors; live model step needs
+  ANTHROPIC_API_KEY. Worktree at ../tbi-program-alex.
