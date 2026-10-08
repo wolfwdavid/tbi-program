@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intake App Architecture</title>
+<style>
+:root {
+  color-scheme: light;
+  --ink: #263a36; --muted: #63736d; --line: #e3dfd4; --paper: #fffdf9; --wash: #f6f4ee;
+  --teal: #176b61; --teal-dark: #10564e; --teal-pale: #e8f3ef; --amber: #92591c; --amber-pale: #fbf0dd;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--wash); color: var(--ink); line-height: 1.5; }
+a { color: var(--teal-dark); }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+header.top { border-bottom: 1px solid var(--line); background: rgba(255,255,255,.75); position: sticky; top: 0; z-index: 2; backdrop-filter: blur(6px); }
+header.top .wrap { min-height: 56px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+.brand { font-weight: 680; letter-spacing: -.02em; display: flex; gap: 9px; align-items: center; text-decoration: none; color: var(--ink); }
+.brand-mark { display: grid; place-items: center; width: 26px; height: 26px; color: var(--teal); border: 1px solid #b8d4cb; border-radius: 9px; }
+nav { display: flex; gap: 6px; flex-wrap: wrap; }
+nav a { text-decoration: none; font-size: 13px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); }
+nav a:hover { border-color: #b8d4cb; background: var(--teal-pale); }
+.intro { padding: 34px 0 10px; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--teal); margin: 0 0 6px; }
+h1 { font-size: clamp(26px, 4vw, 36px); letter-spacing: -.03em; margin: 0 0 10px; line-height: 1.15; }
+.intro p { color: var(--muted); max-width: 760px; margin: 0 0 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 16px 0 0; padding: 12px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 22px; height: 14px; border-radius: 4px; border: 1.5px solid; display: inline-block; }
+section.proj { margin: 38px 0 0; }
+.proj-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h2 { font-size: 26px; letter-spacing: -.025em; margin: 0; }
+.pill { border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 650; }
+.pill.live { color: var(--teal-dark); background: var(--teal-pale); }
+.pill.scripted { color: #776242; background: var(--amber-pale); }
+.proj > p { color: var(--muted); margin: 6px 0 0; max-width: 900px; font-size: 14.5px; }
+.proj > p b { color: var(--ink); font-weight: 650; }
+figure { margin: 16px 0 0; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px 12px; }
+figcaption { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin: 0 0 6px; }
+figcaption h3 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+figcaption span { color: var(--muted); font-size: 13px; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.scroll svg { display: block; min-width: 860px; width: 100%; height: auto; }
+footer { margin: 44px 0 0; padding: 20px 0 32px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+@media (max-width: 480px) { .wrap { padding: 0 16px; } }
+@media print { header.top { position: static; } figure { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><span class="brand-mark">✳</span> One conversation, many forms</a>
+    <nav aria-label="Projects">
+      <a href="./">Back to the app</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="intro">
+    <p class="eyebrow">Three views of the intake app</p>
+    <h1>Architecture, data flow, and user flow</h1>
+    <p><b>Architecture:</b> what runs where. <b>Data flow:</b> how one conversation becomes filled sections on four NHTD waiver forms. <b>User flow:</b> what staff and the client do, step by step.</p>
+    <p>The split: <b>Claude reads what was meant</b>, every fact <b>cites the words actually said</b>, plain code checks citations and routes each fact to every form section that uses it, and <b>the coordinator confirms</b> before one person files the packet. Official forms are filed as-is; signatures stay on each form.</p>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div id="projects"></div>
+</main>
+
+<footer><div class="wrap">Marcus T. Hale is a fictional sample participant. Nothing here is legal, clinical or eligibility advice. Sending to doctors is off in this demo. · <a href="./">Back to the app</a></div></footer>
+
+<script>
+const KINDS = {
+  person:   { label: 'Person or their words',  fill: '#fbf0dd', stroke: '#d9b27c' },
+  ui:       { label: 'Screen the person sees', fill: '#e8f3ef', stroke: '#93c2b4' },
+  code:     { label: 'Code that runs',         fill: '#fffdf9', stroke: '#b3ac9c' },
+  model:    { label: 'Claude (live AI)',       fill: '#176b61', stroke: '#10564e', ink: '#ffffff', sub: '#d6ece6' },
+  external: { label: 'Outside service or source', fill: '#eef1f4', stroke: '#8f9dab', dash: '2 3' },
+  data:     { label: 'Information / record',   fill: '#f2eff8', stroke: '#ada0cc' },
+  stub:     { label: 'Scripted or made up (stands in for real)', fill: '#fffaf1', stroke: '#c08a3e', dash: '6 4' },
+};
+
+const P = [
+{
+  id: 'intake', name: 'One conversation, many forms', live: true,
+  blurb: '<b>Live on Claude Opus 5.5.</b> New York Medicaid NHTD waiver paperwork: the Revised Service Plan packet. Today a home-care agency\'s staff collect information in person, keep it in a drive folder, and one person composes every form in one sitting. Here staff and client have one conversation; Claude reads what is meant and cites the exact words; plain code checks each citation, keeps one record (each person once, with roles) and routes every fact to each form section that uses it. <b>Made up:</b> the sample participant, Marcus T. Hale (supplied by the practitioner). Sending requests to doctors is off in the demo.',
+  diagrams: [
+    { title: 'Architecture', note: 'Runs on the staff laptop. The server listens on loopback only and stores nothing on disk. Claude reads; plain code checks, builds the record, routes and picks the next question.',
+      nodes: [
+        ['st', 0,0, 'Staff + client\ntalk; staff types\n(or ElevenLabs voice)', 'person'],
+        ['mh', 0,1, 'Marcus T. Hale\nfictional sample from\nthe practitioner', 'stub'],
+        ['ui', 1,0, 'Browser page\nindex.html · app.js\nplain HTML/JS', 'ui'],
+        ['sv', 2,0, 'Local server\nserver.py · 8776\nloopback, no disk', 'code'],
+        ['api',3,0, 'Anthropic API\nJSON-schema output', 'external'],
+        ['cl', 4,0, 'Claude Opus 5.5\nreads the meaning', 'model'],
+        ['fx', 5,0, 'Facts\nfield · person · value\nquote · turn_id', 'data'],
+        ['ck', 5,1, 'Citation check\nquote in what was said\ncase/quotes/spaces ok', 'code'],
+        ['rb', 4,1, 'Record builder\npeople once,\nwith roles', 'code'],
+        ['fr', 3,1, 'Form router\nSECTIONS: each field\n→ every section', 'code'],
+        ['nq', 2,1, 'Next question\nbiggest gap', 'code'],
+        ['tb', 1,1, 'Page tabs\nProgress · Map ·\nForm view · Doctors', 'ui'],
+        ['db', 4,2, 'Doctor requests\nwhat each clinician\nmust provide', 'code'],
+        ['hr', 3,2, 'Request + HIPAA\ndraft per doctor;\nclient signs release', 'data'],
+        ['se', 2,2, 'Send email\noff in demo', 'stub'],
+        ['of', 1,2, 'Doctor\'s office\nreturns documents\nto the packet', 'external'],
+      ],
+      edges: [['st','ui','types'],['mh','ui','sample\nturns'],['ui','sv','POST\n/api'],['sv','api','turns'],['api','cl',''],['cl','fx',''],
+              ['fx','ck','each fact'],['ck','rb','cited'],['rb','fr',''],['fr','nq','gaps'],['nq','tb','sections +\nnext Q'],
+              ['rb','db','needs a\nclinician'],['db','hr',''],['hr','se',''],['se','of','']] },
+    { title: 'Data flow', note: 'Measured tonight on the Marcus sample\'s six-turn intake: 44 facts read, none withheld; all 35 answer-key items routed to the right sections. The key was self-built from the same sample, so this shows routing, not robustness.',
+      nodes: [
+        ['t',  0,0, 'Conversation turns\nturn_id · text', 'person'],
+        ['mh', 0,1, 'Marcus T. Hale\nfictional sample', 'stub'],
+        ['cl', 1,0, 'Claude Opus 5.5\nreads meaning;\nfacts + exact quotes', 'model'],
+        ['ck', 2,0, 'Citation check\nuncited facts\ndropped', 'code'],
+        ['rec',3,0, 'One record\nparticipant facts;\neach person once', 'data'],
+        ['fr', 3,1, 'Form router\neach fact → every\nsection that uses it', 'code'],
+        ['f1', 4,0, 'Revised Service Plan\nRSP', 'data'],
+        ['f2', 4,1, 'Protective Oversight\nPPO plan', 'data'],
+        ['f3', 4,2, 'Waiver Contact List\nroles: primary, SC,\nmedication calls', 'data'],
+        ['f4', 4,3, 'Insurance/Resources\nsheet', 'data'],
+        ['rv', 5,1, 'Coordinator review\nconfirms the packet', 'person'],
+        ['fl', 5,2, 'Filed as-is\nofficial forms; each\nsignature stays', 'data'],
+        ['dr', 3,2, 'Doctor request\nwhat this clinician\nmust provide', 'data'],
+        ['hp', 2,2, 'HIPAA release\nclient signs first', 'data'],
+        ['se', 1,2, 'Send\noff in demo', 'stub'],
+        ['of', 0,2, 'Doctor\'s office\ndocuments back\ninto the packet', 'external'],
+      ],
+      edges: [['mh','t','sample'],['t','cl','turns'],['cl','ck','facts +\nquotes'],['ck','rec','cited'],['rec','fr',''],
+              ['fr','f1',''],['fr','f2',''],['fr','f3',''],['fr','f4',''],
+              ['f1','rv',''],['f2','rv',''],['f3','rv',''],['f4','rv',''],['rv','fl','files'],
+              ['fr','dr','needs a\nclinician'],['dr','hp',''],['hp','se',''],['se','of','']] },
+    { title: 'User flow', note: 'Staff and client together. Each round took about 10 to 21 seconds tonight. Nothing is sent to a doctor in the demo; one person still files the packet.',
+      nodes: [
+        ['mh', 0,1, 'Marcus T. Hale\nfictional sample\nturns', 'stub'],
+        ['a', 0,0, 'Staff + client talk\ntyped now;\nor ElevenLabs voice', 'person'],
+        ['b', 1,0, 'Send the message\nClaude reads it', 'ui'],
+        ['c', 2,0, 'Words highlighted\n"filled N sections\nacross M forms"', 'ui'],
+        ['d', 3,0, 'Next question\nfrom the biggest gap\n→ ask it, repeat', 'ui'],
+        ['e', 4,0, 'Review\nMap · Form view', 'ui'],
+        ['f', 5,0, 'Doctor requests\n+ HIPAA release\nprepared', 'ui'],
+        ['g', 5,1, 'Client signs the\nHIPAA release', 'person'],
+        ['s', 5,2, 'Send to doctors\noff in demo', 'stub'],
+        ['h', 4,1, 'Coordinator\nconfirms the packet', 'person'],
+        ['i', 3,1, 'One person files\nthe packet', 'person'],
+        ['j', 2,1, 'Client + agency sign\neach form keeps\nits signatures', 'person'],
+      ],
+      edges: [['mh','a','or'],['a','b',''],['b','c','~10–21 s'],['c','d',''],['d','e',''],['e','f',''],['f','g',''],['g','s',''],['g','h',''],['h','i',''],['i','j','']] },
+  ]
+},
+];
+
+// Grid layout: columns 230 apart (70 px lanes for arrow labels), rows 112 apart.
+const NW = 160, NH = 70, CW = 230, RH = 112, PAD = 18, GAP = CW - NW;
+let uid = 0;
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function label(x, y, text, anchor = 'middle') {
+  if (!text) return '';
+  const lines = text.split('\n');
+  const y0 = y - (lines.length - 1) * 6;
+  return `<text class="el" x="${x}" y="${y0}" text-anchor="${anchor}">` +
+    lines.map((l, i) => `<tspan x="${x}" dy="${i ? 12 : 0}">${esc(l)}</tspan>`).join('') + '</text>';
+}
+
+function render(d) {
+  const id = 'm' + (uid++);
+  const N = {};
+  let maxc = 0, maxr = 0;
+  for (const [key, c, r, t, k] of d.nodes) {
+    N[key] = { c, r, t, k, x: PAD + c * CW, y: PAD + r * RH };
+    N[key].cx = N[key].x + NW / 2; N[key].cy = N[key].y + NH / 2;
+    maxc = Math.max(maxc, c); maxr = Math.max(maxr, r);
+  }
+  const W = PAD * 2 + maxc * CW + NW, H = PAD * 2 + maxr * RH + NH;
+  let paths = '', labels = '';
+  for (const [f, t, text, via] of d.edges) {
+    const s = N[f], e = N[t];
+    let p, lx, ly, anchor = 'middle';
+    if (e.c > s.c) {
+      const x1 = s.x + NW, y1 = s.cy, x2 = e.x, y2 = e.cy;
+      if (y1 === y2) { p = `M${x1},${y1} H${x2 - 2}`; lx = (x1 + x2) / 2; ly = y1 - 12; }
+      else if (via === 'late') { const mx = e.x - GAP / 2; p = `M${x1},${y1} H${mx} V${y2} H${x2 - 2}`; lx = (x1 + mx) / 2; ly = y1 + (y2 > y1 ? -9 : 15); }
+      else { const mx = s.x + NW + GAP / 2; p = `M${x1},${y1} H${mx} V${y2} H${x2 - 2}`; lx = mx; ly = (y1 + y2) / 2 + 4; }
+    } else if (e.c === s.c) {
+      const down = e.r > s.r, x = s.cx;
+      const y1 = down ? s.y + NH : s.y, y2 = down ? e.y - 2 : e.y + NH + 2;
+      p = `M${x},${y1} V${y2}`; lx = x + 8; ly = (y1 + y2) / 2 + 4; anchor = 'start';
+    } else {
+      const x1 = s.x, y1 = s.cy, x2 = e.x + NW, y2 = e.cy;
+      p = `M${x1},${y1} H${x2 + 2}`; lx = (x1 + x2) / 2; ly = y1 - 12;
+    }
+    paths += `<path d="${p}" class="eg" marker-end="url(#${id})"/>`;
+    labels += label(lx, ly, text, anchor);
+  }
+  let boxes = '';
+  for (const key in N) {
+    const n = N[key], K = KINDS[n.k];
+    const lines = n.t.split('\n');
+    const total = 15 + (lines.length - 1) * 13.5;
+    let ty = n.y + NH / 2 - total / 2 + 11;
+    boxes += `<g><rect x="${n.x}" y="${n.y}" width="${NW}" height="${NH}" rx="11" fill="${K.fill}" stroke="${K.stroke}" stroke-width="1.5"${K.dash ? ` stroke-dasharray="${K.dash}"` : ''}/>`;
+    boxes += `<text x="${n.cx}" text-anchor="middle">` + lines.map((l, i) => {
+      const y = i === 0 ? ty : ty + 15 + (i - 1) * 13.5;
+      return `<tspan x="${n.cx}" y="${y}" class="${i ? 'ns' : 'nt'}" fill="${i ? (K.sub || '#63736d') : (K.ink || '#263a36')}">${esc(l)}</tspan>`;
+    }).join('') + '</text></g>';
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" style="max-width:${W}px" role="img" aria-label="${esc(d.title)} diagram">
+  <defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#7d8a84"/></marker></defs>
+  <style>.eg{fill:none;stroke:#7d8a84;stroke-width:1.5}.nt{font:650 12.5px Inter,system-ui,sans-serif}.ns{font:400 11px Inter,system-ui,sans-serif}.el{font:500 10.5px Inter,system-ui,sans-serif;fill:#4f625b;paint-order:stroke;stroke:#fffdf9;stroke-width:4px;stroke-linejoin:round}</style>
+  ${paths}${boxes}${labels}</svg>`;
+}
+
+document.getElementById('legend').innerHTML = Object.values(KINDS).map(k =>
+  `<span><i class="sw" style="background:${k.fill};border-color:${k.stroke};${k.dash ? 'border-style:dashed;' : ''}"></i>${k.label}</span>`).join('');
+
+document.getElementById('projects').innerHTML = P.map(p => `
+  <section class="proj" id="${p.id}">
+    <div class="proj-head"><h2>${p.name}</h2><span class="pill ${p.live ? 'live' : 'scripted'}">${p.live ? 'Live · Claude Opus 5.5' : 'Scripted · no model'}</span></div>
+    <p>${p.blurb}</p>
+    ${p.diagrams.map(d => `<figure><figcaption><h3>${d.title}</h3><span>${esc(d.note)}</span></figcaption><div class="scroll">${render(d)}</div></figure>`).join('')}
+  </section>`).join('');
+// Sections are built after load, so honor a #project link once they exist.
+if (location.hash) { const t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
+</script>
+</body>
+</html>
