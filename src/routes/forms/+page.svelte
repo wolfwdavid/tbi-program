@@ -9,6 +9,7 @@
 	import FolderOpen from '@lucide/svelte/icons/folder-open';
 	import HeartHandshake from '@lucide/svelte/icons/heart-handshake';
 	import Lock from '@lucide/svelte/icons/lock';
+	import MessagesSquare from '@lucide/svelte/icons/messages-square';
 	import Save from '@lucide/svelte/icons/save';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
@@ -184,6 +185,9 @@
 			<Lock size={14} aria-hidden="true" /> On this device only
 		</span>
 		<div class="top-actions">
+			<a class="btn ghost" href={resolve('/intake')}>
+				<MessagesSquare size={18} aria-hidden="true" /><span class="lbl">Intake app</span>
+			</a>
 			<button class="btn ghost" onclick={() => openDialog('open')}>
 				<FolderOpen size={18} aria-hidden="true" /><span class="lbl">Open case</span>
 			</button>
