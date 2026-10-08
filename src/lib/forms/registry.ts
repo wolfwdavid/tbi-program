@@ -17,6 +17,8 @@ import { tbiC42 } from './defs/tbi-c4-2.ts';
 import { tbiC46 } from './defs/tbi-c4-6.ts';
 import { sri24hr } from './defs/sri-24hr.ts';
 import { sriFollowUp } from './defs/sri-follow-up.ts';
+import { tbiC41 } from './defs/tbi-c4-1.ts';
+import { tbiC43 } from './defs/tbi-c4-3.ts';
 
 export const STAGES: { id: Stage; title: string; blurb: string }[] = [
 	{
@@ -58,6 +60,8 @@ export const FORMS: FormDef[] = [
 	doh5753,
 	doh5755,
 	// Ongoing
+	tbiC41,
+	tbiC43,
 	tbiC42,
 	tbiC46,
 	doh5731,

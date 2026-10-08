@@ -177,8 +177,8 @@ function drawText(
 	const size = t.size ?? 9;
 	const lineHeight = t.lineHeight ?? size * 1.2;
 	const maxLines = t.lines ?? 1;
-	const pageWidth = t.rotate ? page.getHeight() : page.getWidth();
-	const width = t.maxWidth ?? pageWidth - t.x - 24;
+	// Text rotated 90° runs up the page, so the room left is measured along y.
+	const width = t.maxWidth ?? (t.rotate ? page.getHeight() - t.y : page.getWidth() - t.x) - 24;
 	let lines = maxLines === 1 ? [text.replace(/\s*\n\s*/g, '; ')] : wrap(text, font, size, width);
 	if (maxLines === 1 && font.widthOfTextAtSize(lines[0], size) > width) {
 		overflow.push({ label, text });
