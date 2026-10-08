@@ -347,8 +347,10 @@ def eleven_key():
     key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     if key:
         return key
-    path = Path(os.environ.get("ELEVEN_KEY_FILE", r"C:\Projects\ElevenLabs_Key.txt"))
-    return path.read_text(encoding="utf-8").strip() if path.is_file() else ""
+    for name in [os.environ.get("ELEVEN_KEY_FILE", ""), r"C:\Projects\ElevenLabs_Key.txt", r"C:\Projects\ElevenLabs.txt"]:
+        if name and Path(name).is_file():
+            return Path(name).read_text(encoding="utf-8").strip()
+    return ""
 
 
 def _eleven(method, path, data=None, headers=None, timeout=60):
