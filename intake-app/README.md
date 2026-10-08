@@ -7,7 +7,7 @@ the same facts (who the participant is, who helps them, medications, equipment, 
 again across several forms, and one person composes the whole packet in one sitting afterwards.
 
 **How it works**
-1. Staff and participant just talk (typed, or voice through ElevenLabs).
+1. Staff and participant just talk (typed, or voice through ElevenLabs), one step at a time: Talk, Check the forms, Doctors, Save.
 2. Claude Opus 5.5 reads each message into **one record**. Every fact cites the exact words it came from.
 3. Plain code checks every citation and routes each fact to **every form section that uses it**, across the:
    - Revised Service Plan;

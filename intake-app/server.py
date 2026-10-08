@@ -304,7 +304,8 @@ def api_key():
     return Path(path).read_text(encoding="utf-8").strip() if path and Path(path).is_file() else ""
 
 
-def read_with_claude(turns):
+def read_with_claude(turns, start=0):
+    """Read facts. With start > 0, earlier turns are context only and facts come from turns[start:] (faster)."""
     import anthropic
     key = api_key()
     if not key:
@@ -314,7 +315,11 @@ def read_with_claude(turns):
         model=MODEL,
         max_tokens=16000,
         system=PROMPT,
-        messages=[{"role": "user", "content": json.dumps({"turns": turns}, ensure_ascii=False)}],
+        messages=[{"role": "user", "content": json.dumps(
+            {"turns": turns} if not start else
+            {"turns": turns, "instruction": f"Facts from earlier turns are already recorded. Return facts only from turns "
+                                            f"t{start + 1} onward; use earlier turns only to understand who and what is meant."},
+            ensure_ascii=False)}],
         output_config={"effort": EFFORT, "format": {"type": "json_schema", "schema": SCHEMA}},
     )
     if response.stop_reason == "refusal":
@@ -432,7 +437,16 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", 0)), 200_000)) or b"{}")
             turns = check_turns(body.get("turns"))
             started = time.perf_counter()
-            facts, dropped = validate(turns, read_with_claude(turns))
+            known = body.get("known_facts") if isinstance(body.get("known_facts"), list) else []
+            start = body.get("read_from") if isinstance(body.get("read_from"), int) and 0 < body.get("read_from") < len(turns) else 0
+            if start and known:
+                # Earlier facts are re-checked against the words they cite, then only the new turns are read.
+                kept, _ = validate(turns[:start], [k for k in known if isinstance(k, dict)][:400])
+                new = [f for f in read_with_claude(turns, start) if isinstance(f, dict) and f.get("turn_id") in {t["id"] for t in turns[start:]}]
+                fresh, dropped = validate(turns, new)
+                facts = kept + fresh
+            else:
+                facts, dropped = validate(turns, read_with_claude(turns))
             result = build(turns, facts)
             result.update(turns=turns, dropped=dropped, seconds=round(time.perf_counter() - started, 1), model=MODEL)
             return self.send(200, result)

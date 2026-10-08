@@ -10,7 +10,7 @@ const DEMO = [
   "I have a power wheelchair, a shower chair and a CPAP machine from Sample DME, 718-555-0180, and a PERS button from Sample Alert Systems. If Priya can't come, I keep the PERS on me and Dana calls me every week. No pets. I have smoke and carbon monoxide detectors and I can get to all the exits.",
   "I get SSDI, about 1,200 dollars a month, and SNAP, 250 a month. I have Medicare A, B and D with the Sample Rx Plan. I'm not a veteran, and I don't have a DNR. If I ever need a hospital, I want Sample Community Hospital in Brooklyn."
 ];
-const state = { turns: [], filled: new Set(), result: null, view: "forms", seen: new Set() };
+const state = { turns: [], filled: new Set(), result: null, view: "talk", seen: new Set(), startedAt: 0, snoozeUntil: 0 };
 const $ = (id) => document.getElementById(id);
 function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = String(text); return n; }
 
@@ -222,39 +222,113 @@ function renderRequests(result) {
   box.append(el("p", "fl-foot", "Drafts only. Use the agency's own HIPAA authorization form; a coordinator reviews every request before it is sent."));
 }
 
+// ------------------------------------------------------------------ steps: one thing on screen at a time
+
+const STEP_OF = { talk: "stepTalk", forms: "stepForms", map: "stepForms", progress: "stepForms", requests: "stepDoctors", save: "stepSave" };
 function setView(view) {
   state.view = view;
-  for (const [id, v] of [["tabProgress", "progress"], ["tabMap", "map"], ["tabForms", "forms"], ["tabReq", "requests"]]) $(id).classList.toggle("on", view === v);
-  $("forms").hidden = view !== "progress"; $("paper").hidden = view !== "forms"; $("mapwrap").hidden = view !== "map"; $("requests").hidden = view !== "requests";
+  for (const id of ["stepTalk", "stepForms", "stepDoctors", "stepSave"]) $(id).hidden = STEP_OF[view] !== id;
+  for (const [id, v] of [["tabTalk", "stepTalk"], ["tabForms", "stepForms"], ["tabReq", "stepDoctors"], ["tabSave", "stepSave"]]) $(id).classList.toggle("on", STEP_OF[view] === v);
+  for (const [id, v] of [["tabPaper", "forms"], ["tabMap", "map"], ["tabProgress", "progress"]]) $(id).classList.toggle("on", view === v);
+  $("paper").hidden = view !== "forms"; $("mapwrap").hidden = view !== "map"; $("progressWrap").hidden = view !== "progress";
+  window.scrollTo({ top: 0 });
 }
-$("tabReq").onclick = () => setView("requests");
-$("tabProgress").onclick = () => setView("progress");
+$("tabTalk").onclick = () => setView("talk");
 $("tabForms").onclick = () => setView("forms");
+$("tabReq").onclick = () => setView("requests");
+$("tabSave").onclick = () => setView("save");
+$("tabPaper").onclick = () => setView("forms");
 $("tabMap").onclick = () => setView("map");
+$("tabProgress").onclick = () => setView("progress");
+
+// What the last message added, in plain words, with the forms each fact went to.
+const SHORT = { RSP: "Service Plan", PPO: "Protective Oversight", Contacts: "Contact List", Insurance: "Insurance" };
+function renderJustAdded(result) {
+  const last = `t${state.turns.length}`, box = $("justAdded"); box.replaceChildren();
+  const facts = result.facts.filter((f) => f.turn_id === last);
+  $("justCard").hidden = !facts.length;
+  for (const f of facts.slice(0, 12)) {
+    const d = el("div", "ja"), forms = [...new Set((f.lands_in || []).map((s) => s.split(" ")[0]))];
+    d.append(el("b", "", (f.person ? `${f.person}: ` : "") + f.value));
+    const lands = el("span", "lands"); forms.forEach((c) => lands.append(el("span", "chip", SHORT[c] || c))); d.append(lands);
+    d.append(el("div", "src", `“${f.quote}”`));
+    box.append(d);
+  }
+  const chips = $("chips"); chips.replaceChildren();
+  for (const form of result.forms) {
+    const b = el("button", "fchip"), bar = el("i"), fill = el("s");
+    fill.style.width = `${Math.round(100 * form.filled / form.total)}%`; bar.append(fill);
+    b.append(el("b", "", form.title), document.createTextNode(`${form.filled} of ${form.total} sections`), bar);
+    b.onclick = () => setView("forms"); chips.append(b);
+  }
+}
 
 // ------------------------------------------------------------------ round trip
 
 function render(result) {
   state.result = result;
   renderTurns(result); renderRecord(result);
-  const fresh = renderProgress(result); renderForms(result); renderMap(result); renderRequests(result);
-  if (fresh.fresh) { const b = $("banner"); b.textContent = `That message filled ${fresh.fresh} form section${fresh.fresh > 1 ? "s" : ""} across ${fresh.forms} form${fresh.forms > 1 ? "s" : ""}, each tied to your words.`; b.classList.remove("on"); void b.offsetWidth; b.classList.add("on"); }
-  if (result.next_question) { $("next").hidden = false; $("nextText").textContent = `${result.next_question.form}: ${result.next_question.text}`; } else $("next").hidden = true;
+  const fresh = renderProgress(result); renderForms(result); renderMap(result); renderRequests(result); renderJustAdded(result);
+  if (fresh.fresh) { const b = $("banner"); b.textContent = `That answer filled ${fresh.fresh} section${fresh.fresh > 1 ? "s" : ""} across ${fresh.forms} form${fresh.forms > 1 ? "s" : ""}. Tap to see the forms.`; b.classList.remove("on"); void b.offsetWidth; b.classList.add("on"); }
+  $("nextText").textContent = result.next_question ? result.next_question.text : "Every section we track has an answer. Check the forms next.";
   $("recordNote").textContent = `Each person is entered once, with every role they play. ${result.facts.length} facts read · ${result.seconds}s${result.dropped ? ` · ${result.dropped} withheld (no matching words)` : ""}`;
 }
 
 async function send() {
   const text = $("box").value.trim(); if (!text) return;
+  if (!state.startedAt) state.startedAt = Date.now();
+  const readFrom = state.result ? state.turns.length : 0;
   state.turns.push({ text }); $("box").value = ""; renderTurns(state.result);
   $("send").disabled = true; $("status").className = ""; $("status").textContent = "Claude is reading…";
   try {
-    const r = await fetch("/api/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ turns: state.turns }) });
+    // Only the new answer is read; earlier facts are sent back and re-checked against their words.
+    const known = readFrom ? state.result.facts.map(({ field, person, value, quote, turn_id }) => ({ field, person, value, quote, turn_id })) : [];
+    const r = await fetch("/api/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ turns: state.turns, known_facts: known, read_from: readFrom }) });
     const data = await r.json(); if (!r.ok) throw new Error(data.error || r.statusText);
     render(data); $("status").textContent = "";
   } catch (e) { state.turns.pop(); $("box").value = text; renderTurns(state.result); $("status").className = "err"; $("status").textContent = `Couldn't read that: ${e.message}`; }
   finally { $("send").disabled = false; }
 }
 $("send").onclick = send;
+
+// ------------------------------------------------------------------ save and resume (demo: this browser only, synthetic data)
+
+const DRAFT = "nhtd-intake-draft";
+function savedDraft() { try { return JSON.parse(localStorage.getItem(DRAFT) || "null"); } catch { return null; } }
+function saveDraft() {
+  try { localStorage.setItem(DRAFT, JSON.stringify({ turns: state.turns, savedAt: new Date().toISOString() })); $("saveNote").textContent = `Saved ${state.turns.length} answers at ${new Date().toLocaleTimeString()}. Resume from this laptop any time.`; }
+  catch { $("saveNote").textContent = "This browser would not save. Copy the forms instead."; }
+}
+async function resumeDraft() {
+  const d = savedDraft(); if (!d || !d.turns?.length) { $("saveNote").textContent = "No saved intake on this laptop."; return; }
+  state.turns = d.turns.slice(); state.result = null; state.filled = new Set(); state.seen = new Set();
+  $("resumeBar").hidden = true; setView("talk"); renderTurns(null);
+  $("status").className = ""; $("status").textContent = `Reading the ${state.turns.length} saved answers…`;
+  try {
+    const r = await fetch("/api/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ turns: state.turns }) });
+    const data = await r.json(); if (!r.ok) throw new Error(data.error || r.statusText);
+    render(data); $("status").textContent = "Picked up where you left off.";
+  } catch (e) { $("status").className = "err"; $("status").textContent = `Couldn't resume: ${e.message}`; }
+}
+$("saveNow").onclick = saveDraft;
+$("resumeNow").onclick = resumeDraft;
+$("resumeTop").onclick = resumeDraft;
+$("newIntake").onclick = () => { if (confirm("Start a new intake? The current answers stay saved only if you pressed Save.")) location.reload(); };
+if (savedDraft()) $("resumeBar").hidden = false;
+
+// ------------------------------------------------------------------ break check-in (every 30 minutes of talking)
+
+const CHECKIN_MS = 30 * 60 * 1000;
+function showCheckin() {
+  const who = (state.result?.facts.find((f) => f.field === "participant_name") || {}).value || "the participant";
+  const mins = state.startedAt ? Math.max(1, Math.round((Date.now() - state.startedAt) / 60000)) : 30;
+  $("checkinText").textContent = `You've been talking with ${who.split(" ")[0]} for ${mins} minute${mins > 1 ? "s" : ""}.`;
+  $("checkin").hidden = false; setView("talk");
+}
+setInterval(() => { if (state.startedAt && !state.snoozeUntil && Date.now() - state.startedAt > CHECKIN_MS) showCheckin(); if (state.snoozeUntil && Date.now() > state.snoozeUntil) state.snoozeUntil = 0; }, 30000);
+$("keepGoing").onclick = () => { $("checkin").hidden = true; state.snoozeUntil = Date.now() + 15 * 60 * 1000; };
+$("takeBreak").onclick = () => { $("checkin").hidden = true; saveDraft(); setView("save"); };
+$("checkinNow").onclick = showCheckin;
 
 // ------------------------------------------------------------------ voice (ElevenLabs via the local server; browser voice as fallback)
 
@@ -279,7 +353,7 @@ async function playDemo() {
   try {
     for (let i = state.turns.length; i < DEMO.length && !voice.stop; i++) {
       const q = state.result?.next_question?.text || "Let's start with your full name, date of birth, address and phone.";
-      $("next").hidden = false; $("nextText").textContent = q;
+      $("nextText").textContent = q;
       await speak(q, "staff");
       if (voice.stop) break;
       await typeInto(DEMO[i]);
@@ -314,6 +388,6 @@ $("box").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKe
 
 fetch("/api/health").then((r) => r.json()).then((hh) => { voice.server = !!hh.voice; $("voiceSrc").textContent = hh.voice ? "ElevenLabs voice" : "browser voice (ElevenLabs key not set)"; if (!hh.ready) { $("status").className = "err"; $("status").textContent = "No API key set on the server."; } }).catch(() => {});
 
-setView("forms");
+setView("talk");
 $("banner").onclick = () => { setView("forms"); $("paper").scrollIntoView({ behavior: "smooth", block: "start" }); };
 $("printForms").onclick = () => { setView("forms"); window.print(); };
