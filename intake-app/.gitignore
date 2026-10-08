@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+last_marcus_result.json
+*_Key.txt

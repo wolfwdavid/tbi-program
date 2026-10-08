@@ -1,0 +1,91 @@
+{
+  "about": "Synthetic intake conversation for the practitioner's FICTIONAL sample participant (Marcus T. Hale, NHTD Revised Service Plan packet). Written by Claude on 2026-10-08 from the sample's filled pages; not a real person. The answer key lists what the sample's own filled forms say, section by section, as lowercase tokens that must appear in some value routed to that section.",
+  "turns": [
+    "I'm Marcus Hale, born March 15, 1959. I live alone in a ground-floor apartment I lease at 100 Example Avenue, apartment 4B, in Brooklyn, Kings County. My cell is 718-555-0142.",
+    "I take metformin 500 milligrams for my diabetes, lisinopril 10 for blood pressure, atorvastatin 20 for cholesterol, and sertraline 50 for depression, all by mouth. I fill my own weekly pill organizer and my phone alarm reminds me. Priya, my ILST worker, checks the organizer and helps me get refills.",
+    "My primary care doctor is Dr. Lena Ortiz at Sample Primary Care, 718-555-0150. The neurology clinic has the paperwork about my head injury, but I don't remember the doctor's name.",
+    "I'm on a diabetic diet, low salt and low fat, and I make my own meals. I wear glasses; my hearing is fine. English is my only language, but people sometimes have to repeat things because of my memory.",
+    "No family helps me, just a neighbour who checks in now and then. My service coordinator, Dana Whitfield, at 718-555-0100, is who you call first. If something's wrong with my medications, call my primary care doctor. If I stop eating right, Dana calls the doctor.",
+    "I have a power wheelchair, a shower chair and a CPAP machine from Sample DME, 718-555-0180, and a PERS button from Sample Alert Systems. If Priya can't come, I keep the PERS on me and Dana calls me every week. No pets. I have smoke and carbon monoxide detectors and I can get to all the exits.",
+    "I get SSDI, about 1,200 dollars a month, and SNAP, 250 a month. I have Medicare A, B and D with the Sample Rx Plan. I'm not a veteran, and I don't have a DNR. If I ever need a hospital, I want Sample Community Hospital in Brooklyn."
+  ],
+  "answer_key": {
+    "RSP 1": [
+      "marcus",
+      "1959",
+      "example avenue",
+      "555-0142"
+    ],
+    "RSP 3B.1": [
+      "metformin",
+      "lisinopril",
+      "atorvastatin",
+      "sertraline"
+    ],
+    "RSP 3B.2": [
+      "wheelchair",
+      "shower chair",
+      "cpap"
+    ],
+    "RSP 3B.4": [
+      "organizer"
+    ],
+    "RSP 3B.7": [
+      "diabetic"
+    ],
+    "RSP 3B.8–9": [
+      "glasses"
+    ],
+    "RSP 3B.10": [
+      "english"
+    ],
+    "RSP 4": [
+      "alone"
+    ],
+    "RSP 5a": [
+      "neighbo"
+    ],
+    "RSP 5b": [
+      "ssdi",
+      "snap"
+    ],
+    "PPO 1": [
+      "dana"
+    ],
+    "PPO 2": [
+      "dnr"
+    ],
+    "PPO 4": [
+      "sample community hospital"
+    ],
+    "PPO 6": [
+      "smoke"
+    ],
+    "PPO 7": [
+      "primary care"
+    ],
+    "PPO 8": [
+      "dana"
+    ],
+    "PPO 9": [
+      "pers",
+      "no"
+    ],
+    "PPO 10": [
+      "pers",
+      "wheelchair",
+      "cpap"
+    ],
+    "Contacts list": [
+      "dana",
+      "priya"
+    ],
+    "Insurance 1": [
+      "sample rx"
+    ],
+    "Insurance 2": [
+      "1,200",
+      "250"
+    ]
+  }
+}
